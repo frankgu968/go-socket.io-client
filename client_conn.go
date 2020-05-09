@@ -4,17 +4,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/zhouhui8915/engine.io-go/message"
-	"github.com/zhouhui8915/engine.io-go/parser"
-	"github.com/zhouhui8915/engine.io-go/polling"
-	"github.com/zhouhui8915/engine.io-go/transport"
-	"github.com/zhouhui8915/engine.io-go/websocket"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/zhouhui8915/engine.io-go/message"
+	"github.com/zhouhui8915/engine.io-go/parser"
+	"github.com/zhouhui8915/engine.io-go/polling"
+	"github.com/zhouhui8915/engine.io-go/transport"
+	"github.com/zhouhui8915/engine.io-go/websocket"
 )
 
 var InvalidError = errors.New("invalid transport")
@@ -40,7 +41,7 @@ type MessageType message.MessageType
 
 const (
 	MessageBinary MessageType = MessageType(message.MessageBinary)
-	MessageText MessageType = MessageType(message.MessageText)
+	MessageText   MessageType = MessageType(message.MessageText)
 )
 
 type state int
@@ -83,13 +84,13 @@ func newClientConn(opts *Options, u *url.URL) (client *clientConn, err error) {
 	}
 
 	client = &clientConn{
-		url:           u,
-		options:       opts,
-		state:         stateNormal,
-		pingTimeout:   60000 * time.Millisecond,
-		pingInterval:  25000 * time.Millisecond,
-		pingChan:      make(chan bool),
-		readerChan:    make(chan *connReader),
+		url:          u,
+		options:      opts,
+		state:        stateNormal,
+		pingTimeout:  60000 * time.Millisecond,
+		pingInterval: 25000 * time.Millisecond,
+		pingChan:     make(chan bool),
+		readerChan:   make(chan *connReader),
 	}
 
 	err = client.onOpen()
@@ -268,7 +269,7 @@ func (c *clientConn) onOpen() error {
 	q := c.request.URL.Query()
 	q.Set("transport", "polling")
 	c.request.URL.RawQuery = q.Encode()
-	if (c.options.Header != nil) {
+	if c.options.Header != nil {
 		c.request.Header = c.options.Header
 	}
 
@@ -337,13 +338,21 @@ func (c *clientConn) onOpen() error {
 	if c.options.Transport == "polling" {
 		//over
 	} else if c.options.Transport == "websocket" {
+		// Validate websocket url scheme
+		if c.options.WSScheme == "" {
+			c.options.WSScheme = "ws" // Default non TLS websocket
+		}
+		if c.options.WSScheme != "ws" || c.options.WSScheme != "wss" {
+			return fmt.Errorf("Invalid WebSocket URL Scheme: " + c.options.WSScheme + " . Must be ws or wss!")
+		}
+
 		//upgrade
 		creater, exists = creaters["websocket"]
 		if !exists {
 			return InvalidError
 		}
 
-		c.request.URL.Scheme = "ws"
+		c.request.URL.Scheme = c.options.WSScheme
 		q.Set("sid", c.id)
 		q.Set("transport", "websocket")
 		c.request.URL.RawQuery = q.Encode()
