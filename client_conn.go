@@ -342,7 +342,7 @@ func (c *clientConn) onOpen() error {
 		if c.options.WSScheme == "" {
 			c.options.WSScheme = "ws" // Default non TLS websocket
 		}
-		if c.options.WSScheme != "ws" || c.options.WSScheme != "wss" {
+		if c.options.WSScheme != "ws" && c.options.WSScheme != "wss" {
 			return fmt.Errorf("Invalid WebSocket URL Scheme: " + c.options.WSScheme + " . Must be ws or wss!")
 		}
 
